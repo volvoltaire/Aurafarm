@@ -1,0 +1,2439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AuraFarm — Trading Journal</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c0f;
+    --surface: #10141a;
+    --surface2: #161c24;
+    --border: #1e2730;
+    --border2: #2a3544;
+    --text: #e8edf2;
+    --muted: #5a6a7a;
+    --accent: #00d4aa;
+    --accent2: #0099ff;
+    --green: #00c97a;
+    --red: #ff4757;
+    --yellow: #ffcb47;
+    --mono: 'Space Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* LAYOUT */
+  .app { display: flex; height: 100vh; overflow: hidden; }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 220px;
+    min-width: 220px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+  }
+
+  .logo {
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo-text {
+    font-family: var(--sans);
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+
+  .logo-text span { color: var(--accent); }
+
+  .logo-sub {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .nav {
+    flex: 1;
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    transition: all 0.15s;
+    border: 1px solid transparent;
+  }
+
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active {
+    background: rgba(0, 212, 170, 0.08);
+    color: var(--accent);
+    border-color: rgba(0, 212, 170, 0.15);
+  }
+
+  .nav-icon { font-size: 15px; width: 18px; text-align: center; }
+
+  .nav-section {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 12px 12px 4px;
+    margin-top: 8px;
+  }
+
+  .sidebar-stats {
+    padding: 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .stat-label { font-family: var(--mono); font-size: 9px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+  .stat-val { font-family: var(--mono); font-size: 12px; font-weight: 700; }
+  .stat-val.green { color: var(--green); }
+  .stat-val.red { color: var(--red); }
+
+  /* MAIN */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  .topbar {
+    height: 56px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+
+  .page-title {
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+  }
+
+  .topbar-actions { display: flex; gap: 10px; align-items: center; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+  }
+
+  .btn-primary:hover { background: #00efc0; transform: translateY(-1px); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border2);
+  }
+
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+  .content { flex: 1; overflow-y: auto; padding: 24px; }
+
+  /* PAGES */
+  .page { display: none; animation: fadeIn 0.2s ease; }
+  .page.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* DASHBOARD */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .metric-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .metric-card.green-accent::before { background: linear-gradient(90deg, var(--green), transparent); }
+  .metric-card.red-accent::before { background: linear-gradient(90deg, var(--red), transparent); }
+  .metric-card.accent-accent::before { background: linear-gradient(90deg, var(--accent), transparent); }
+  .metric-card.blue-accent::before { background: linear-gradient(90deg, var(--accent2), transparent); }
+
+  .metric-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .metric-value {
+    font-family: var(--mono);
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+
+  .metric-value.green { color: var(--green); }
+  .metric-value.red { color: var(--red); }
+  .metric-value.accent { color: var(--accent); }
+
+  .metric-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  /* CALENDAR */
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .cal-header {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    text-align: center;
+    padding: 6px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .cal-day {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 8px;
+    min-height: 70px;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+  }
+
+  .cal-day:hover { border-color: var(--border2); background: var(--surface2); }
+  .cal-day.has-trades.win { border-color: rgba(0, 201, 122, 0.3); background: rgba(0, 201, 122, 0.04); }
+  .cal-day.has-trades.loss { border-color: rgba(255, 71, 87, 0.3); background: rgba(255, 71, 87, 0.04); }
+  .cal-day.today { border-color: var(--accent); }
+  .cal-day.empty { opacity: 0.3; cursor: default; }
+
+  .cal-date {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+
+  .cal-pnl {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .cal-pnl.green { color: var(--green); }
+  .cal-pnl.red { color: var(--red); }
+
+  .cal-trades { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  /* TRADE FORM */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .form-full { grid-column: 1 / -1; }
+
+  .form-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .form-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+    font-family: var(--mono);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .form-section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .field { display: flex; flex-direction: column; gap: 6px; }
+
+  .field label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .field input,
+  .field select,
+  .field textarea {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-family: var(--mono);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s;
+    width: 100%;
+  }
+
+  .field input:focus,
+  .field select:focus,
+  .field textarea:focus {
+    border-color: var(--accent);
+  }
+
+  .field textarea { resize: vertical; min-height: 80px; }
+
+  .field select option { background: #1a1f27; }
+
+  /* TOGGLE BUTTONS */
+  .toggle-group { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  .toggle-btn {
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 11px;
+    cursor: pointer;
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--muted);
+    transition: all 0.15s;
+  }
+
+  .toggle-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .toggle-btn.active { background: rgba(0,212,170,0.1); border-color: var(--accent); color: var(--accent); }
+  .toggle-btn.red.active { background: rgba(255,71,87,0.1); border-color: var(--red); color: var(--red); }
+  .toggle-btn.green.active { background: rgba(0,201,122,0.1); border-color: var(--green); color: var(--green); }
+
+  /* EMOTION BUTTONS */
+  .emotion-group { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .emotion-btn {
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    border: 1px solid var(--border2);
+    background: transparent;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .emotion-btn span { font-size: 11px; font-family: var(--mono); color: var(--muted); }
+  .emotion-btn:hover { border-color: var(--border2); transform: scale(1.05); }
+  .emotion-btn.active { border-color: var(--accent); background: rgba(0,212,170,0.1); }
+  .emotion-btn.active span { color: var(--accent); }
+
+  /* TRADES TABLE */
+  .trades-table { width: 100%; border-collapse: collapse; }
+
+  .trades-table th {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .trades-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+
+  .trades-table tr:hover td { background: var(--surface2); cursor: pointer; }
+
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 10px;
+    background: rgba(0,212,170,0.08);
+    color: var(--accent);
+    border: 1px solid rgba(0,212,170,0.2);
+    margin-right: 3px;
+  }
+
+  .tag.red {
+    background: rgba(255,71,87,0.08);
+    color: var(--red);
+    border-color: rgba(255,71,87,0.2);
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .badge.win { background: rgba(0,201,122,0.15); color: var(--green); }
+  .badge.loss { background: rgba(255,71,87,0.15); color: var(--red); }
+
+  /* SECTION HEADER */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+
+  .section-sub {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* CARD */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+  /* TICKER BADGE */
+  .ticker {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent2);
+  }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 700px;
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 28px;
+    animation: modalIn 0.2s ease;
+  }
+
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(0.95) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+
+  .modal-title { font-size: 18px; font-weight: 800; }
+  .modal-close {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .modal-close:hover { color: var(--text); border-color: var(--border2); }
+
+  /* RR DISPLAY */
+  .rr-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-top: 8px;
+  }
+
+  .rr-label { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+  .rr-value { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--accent); }
+
+  /* WIN RATE BAR */
+  .wr-bar-bg {
+    height: 6px;
+    background: var(--border2);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+
+  .wr-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--green), var(--accent));
+    border-radius: 3px;
+    transition: width 0.5s ease;
+  }
+
+  /* MONTH NAV */
+  .month-nav {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .month-nav button {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+
+  .month-nav button:hover { border-color: var(--accent); color: var(--accent); }
+
+  .month-label { font-family: var(--mono); font-size: 13px; font-weight: 700; min-width: 120px; text-align: center; }
+
+  /* ASSET FILTER */
+  .asset-filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+
+  .asset-pill {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-family: var(--mono);
+    font-size: 10px;
+    cursor: pointer;
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--muted);
+    transition: all 0.15s;
+  }
+
+  .asset-pill:hover { border-color: var(--accent); color: var(--accent); }
+  .asset-pill.active { background: rgba(0,212,170,0.1); border-color: var(--accent); color: var(--accent); }
+
+  /* EMPTY STATE */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+  }
+
+  .empty-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.5; }
+  .empty-text { font-size: 14px; margin-bottom: 8px; }
+  .empty-sub { font-family: var(--mono); font-size: 11px; }
+
+  /* LOGIN */
+  .login-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    flex-direction: column;
+  }
+
+  .login-box {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 20px;
+    padding: 44px 40px;
+    width: 100%;
+    max-width: 380px;
+    animation: modalIn 0.3s ease;
+  }
+
+  .login-logo {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .login-logo-text {
+    font-family: var(--sans);
+    font-weight: 800;
+    font-size: 28px;
+    letter-spacing: -1px;
+    color: var(--text);
+  }
+
+  .login-logo-text span { color: var(--accent); }
+
+  .login-logo-sub {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .login-field {
+    margin-bottom: 16px;
+  }
+
+  .login-field label {
+    display: block;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .login-field input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-family: var(--mono);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .login-field input:focus { border-color: var(--accent); }
+
+  .login-btn {
+    width: 100%;
+    padding: 13px;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 10px;
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: all 0.15s;
+    letter-spacing: 0.3px;
+  }
+
+  .login-btn:hover { background: #00efc0; transform: translateY(-1px); }
+
+  .login-error {
+    background: rgba(255,71,87,0.1);
+    border: 1px solid rgba(255,71,87,0.25);
+    color: var(--red);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-family: var(--mono);
+    font-size: 12px;
+    margin-bottom: 16px;
+    display: none;
+  }
+
+  .login-user-badge {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+
+  .login-user-avatar {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800;
+    font-size: 13px;
+    color: #000;
+    flex-shrink: 0;
+  }
+
+  .login-user-name { font-size: 13px; font-weight: 700; }
+  .login-user-plan { font-family: var(--mono); font-size: 9px; color: var(--accent); letter-spacing: 1px; }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+    .form-grid { grid-template-columns: 1fr; }
+    .form-grid-3 { grid-template-columns: 1fr 1fr; }
+    .sidebar { width: 60px; min-width: 60px; }
+    .nav-item span { display: none; }
+    .logo-text, .logo-sub, .nav-section, .sidebar-stats { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div class="login-screen" id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-text">Aura<span>Farm</span></div>
+      <div class="login-logo-sub">ICT Trading Journal</div>
+    </div>
+    <div class="login-error" id="login-error">Incorrect username or password</div>
+    <div class="login-field">
+      <label>Username</label>
+      <input type="text" id="login-user" placeholder="Enter username" autocomplete="username">
+    </div>
+    <div class="login-field">
+      <label>Password</label>
+      <input type="password" id="login-pass" placeholder="Enter password" autocomplete="current-password" onkeydown="if(event.key==='Enter') doLogin()">
+    </div>
+    <button class="login-btn" onclick="doLogin()">Sign In →</button>
+  </div>
+</div>
+
+<div class="app" id="main-app" style="display:none">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-text">Aura<span>Farm</span></div>
+      <div class="logo-sub">ICT Journal</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-section">Main</div>
+      <div class="nav-item active" onclick="showPage('dashboard', this)">
+        <span class="nav-icon">⬡</span>
+        <span>Dashboard</span>
+      </div>
+      <div class="nav-item" onclick="showPage('calendar', this)">
+        <span class="nav-icon">▦</span>
+        <span>Calendar</span>
+      </div>
+      <div class="nav-section">Trades</div>
+      <div class="nav-item" onclick="showPage('newtrade', this)">
+        <span class="nav-icon">＋</span>
+        <span>New Trade</span>
+      </div>
+      <div class="nav-item" onclick="showPage('trades', this)">
+        <span class="nav-icon">≡</span>
+        <span>All Trades</span>
+      </div>
+      <div class="nav-section">Analysis</div>
+      <div class="nav-item" onclick="showPage('reports', this)">
+        <span class="nav-icon">◈</span>
+        <span>Reports</span>
+      </div>
+      <div class="nav-item" onclick="showPage('bias', this)">
+        <span class="nav-icon">⬡</span>
+        <span>Bias Analyser</span>
+      </div>
+    </nav>
+    <div class="sidebar-stats" id="sidebar-stats">
+      <div class="stat-row">
+        <span class="stat-label">Today</span>
+        <span class="stat-val green" id="sb-today">R0</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Week</span>
+        <span class="stat-val green" id="sb-week">R0</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Month</span>
+        <span class="stat-val green" id="sb-month">R0</span>
+      </div>
+    </div>
+    <div class="login-user-badge" onclick="doLogout()" title="Click to logout">
+      <div class="login-user-avatar">T</div>
+      <div>
+        <div class="login-user-name">Tebogo</div>
+        <div class="login-user-plan">Logout ↗</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar">
+      <div class="page-title" id="page-title">Dashboard</div>
+      <div class="topbar-actions">
+        <span style="font-family:var(--mono);font-size:11px;color:var(--muted)" id="date-display"></span>
+        <button class="btn btn-ghost" onclick="showPage('bias', document.querySelector('[onclick*=\'bias\']'))">📈 Analyse CSV</button>
+        <button class="btn btn-primary" onclick="showPage('newtrade', null)">+ Log Trade</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- DASHBOARD PAGE -->
+      <div class="page active" id="page-dashboard">
+        <div class="metrics-grid">
+          <div class="metric-card green-accent">
+            <div class="metric-label">Total P&L</div>
+            <div class="metric-value green" id="m-total-pnl">$0.00</div>
+            <div class="metric-sub" id="m-total-trades">0 trades logged</div>
+          </div>
+          <div class="metric-card accent-accent">
+            <div class="metric-label">Win Rate</div>
+            <div class="metric-value accent" id="m-winrate">0%</div>
+            <div class="metric-sub" id="m-wl">0W / 0L</div>
+          </div>
+          <div class="metric-card blue-accent">
+            <div class="metric-label">Profit Factor</div>
+            <div class="metric-value accent" id="m-pf">0.00</div>
+            <div class="metric-sub">Gross wins / losses</div>
+          </div>
+          <div class="metric-card red-accent">
+            <div class="metric-label">Avg R:R</div>
+            <div class="metric-value" id="m-rr" style="color:var(--yellow)">0.00</div>
+            <div class="metric-sub">Risk to reward</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <!-- Recent Trades -->
+          <div class="card">
+            <div class="section-header">
+              <div>
+                <div class="section-title">Recent Trades</div>
+                <div class="section-sub">Latest logged positions</div>
+              </div>
+            </div>
+            <div id="recent-trades-list">
+              <div class="empty-state">
+                <div class="empty-icon">📋</div>
+                <div class="empty-text">No trades yet</div>
+                <div class="empty-sub">Log your first trade to get started</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Emotion Stats -->
+          <div class="card">
+            <div class="section-header">
+              <div>
+                <div class="section-title">Emotion Analysis</div>
+                <div class="section-sub">How your emotions affect performance</div>
+              </div>
+            </div>
+            <div id="emotion-stats">
+              <div class="empty-state">
+                <div class="empty-icon">🧠</div>
+                <div class="empty-text">No data yet</div>
+                <div class="empty-sub">Track emotions per trade</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Asset breakdown -->
+        <div class="card">
+          <div class="section-header">
+            <div>
+              <div class="section-title">Asset Performance</div>
+              <div class="section-sub">P&L breakdown by instrument</div>
+            </div>
+          </div>
+          <div id="asset-breakdown">
+            <div class="empty-state">
+              <div class="empty-icon">📊</div>
+              <div class="empty-text">No trades yet</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CALENDAR PAGE -->
+      <div class="page" id="page-calendar">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Weekly Calendar</div>
+            <div class="section-sub">Daily P&L overview</div>
+          </div>
+          <div class="month-nav">
+            <button onclick="changeMonth(-1)">‹</button>
+            <span class="month-label" id="cal-month-label">March 2025</span>
+            <button onclick="changeMonth(1)">›</button>
+          </div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;">
+          <div class="calendar-grid" id="cal-headers"></div>
+          <div class="calendar-grid" id="cal-grid" style="margin-top:8px;"></div>
+        </div>
+        <div id="cal-month-stats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px;"></div>
+      </div>
+
+      <!-- NEW TRADE PAGE -->
+      <div class="page" id="page-newtrade">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Log New Trade</div>
+            <div class="section-sub">Follow your process — Pre-Trade Setup → Entry Model → Psychology</div>
+          </div>
+        </div>
+
+        <!-- SECTION 1: TRADE BASICS -->
+        <div class="form-section">
+          <div class="form-section-title">① Trade Basics</div>
+          <div class="form-grid-3">
+            <div class="field">
+              <label>Date & Time (SAST)</label>
+              <input type="datetime-local" id="f-datetime">
+            </div>
+            <div class="field">
+              <label>Asset</label>
+              <select id="f-asset">
+                <option value="">Select asset...</option>
+                <optgroup label="Indices">
+                  <option>US100 / NAS100</option>
+                  <option>US30</option>
+                  <option>US500</option>
+                </optgroup>
+                <optgroup label="Stocks">
+                  <option>NVDA</option>
+                  <option>AAPL</option>
+                  <option>MSFT</option>
+                  <option>GOOGL</option>
+                  <option>AMZN</option>
+                  <option>META</option>
+                  <option>TSLA</option>
+                </optgroup>
+              </select>
+            </div>
+            <div class="field">
+              <label>Direction</label>
+              <div class="toggle-group" style="margin-top:4px">
+                <button class="toggle-btn green" onclick="toggleDir('LONG', this)">↑ LONG</button>
+                <button class="toggle-btn red" onclick="toggleDir('SHORT', this)">↓ SHORT</button>
+              </div>
+            </div>
+          </div>
+          <div class="form-grid-3" style="margin-top:14px">
+            <div class="field">
+              <label>Entry Price</label>
+              <input type="number" id="f-entry" placeholder="0.00" step="0.01" oninput="calcRR()">
+            </div>
+            <div class="field">
+              <label>Stop Loss</label>
+              <input type="number" id="f-sl" placeholder="0.00" step="0.01" oninput="calcRR()">
+            </div>
+            <div class="field">
+              <label>Take Profit</label>
+              <input type="number" id="f-tp" placeholder="0.00" step="0.01" oninput="calcRR()">
+            </div>
+          </div>
+          <div class="form-grid-3" style="margin-top:14px">
+            <div class="field">
+              <label>Exit Price</label>
+              <input type="number" id="f-exit" placeholder="0.00" step="0.01">
+            </div>
+            <div class="field">
+              <label>P&L (R)</label>
+              <input type="number" id="f-pnl" placeholder="e.g. 1500 or -800" step="0.01">
+            </div>
+            <div class="field">
+              <label>Calculated R:R</label>
+              <div class="rr-display">
+                <span class="rr-label">R:R =</span>
+                <span class="rr-value" id="rr-calc">—</span>
+              </div>
+            </div>
+          </div>
+          <div class="field" style="margin-top:14px">
+            <label>Outcome</label>
+            <div class="toggle-group">
+              <button class="toggle-btn green" onclick="toggleOutcome('WIN', this)">✓ WIN</button>
+              <button class="toggle-btn red" onclick="toggleOutcome('LOSS', this)">✗ LOSS</button>
+              <button class="toggle-btn" onclick="toggleOutcome('BREAKEVEN', this)">— BREAKEVEN</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 2: ENVIRONMENT -->
+        <div class="form-section">
+          <div class="form-section-title">② Environment</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:14px;line-height:1.6">
+            Where is price coming FROM and where is it going TO? Internal = Imbalance/Gap or Old High/Low. External = Old High/Low beyond prior range.
+          </div>
+          <div class="form-grid" style="gap:20px">
+            <div class="field">
+              <label>Price is coming FROM</label>
+              <div class="toggle-group" style="margin-top:6px">
+                <button class="toggle-btn" onclick="toggle('envFrom', 'Internal Liquidity', this)">Internal Liq.</button>
+                <button class="toggle-btn" onclick="toggle('envFrom', 'External Liquidity', this)">External Liq.</button>
+              </div>
+              <div style="margin-top:10px">
+                <label>Type of Internal Liquidity</label>
+                <div class="toggle-group" style="margin-top:6px">
+                  <button class="toggle-btn" onclick="toggle('envFromType', 'Imbalance/Gap', this)">Imbalance/Gap</button>
+                  <button class="toggle-btn" onclick="toggle('envFromType', 'Old High', this)">Old High</button>
+                  <button class="toggle-btn" onclick="toggle('envFromType', 'Old Low', this)">Old Low</button>
+                </div>
+              </div>
+            </div>
+            <div class="field">
+              <label>Price is heading TO</label>
+              <div class="toggle-group" style="margin-top:6px">
+                <button class="toggle-btn" onclick="toggle('envTo', 'Internal Liquidity', this)">Internal Liq.</button>
+                <button class="toggle-btn" onclick="toggle('envTo', 'External Liquidity', this)">External Liq.</button>
+              </div>
+              <div style="margin-top:10px">
+                <label>Type of Target Liquidity</label>
+                <div class="toggle-group" style="margin-top:6px">
+                  <button class="toggle-btn" onclick="toggle('envToType', 'Imbalance/Gap', this)">Imbalance/Gap</button>
+                  <button class="toggle-btn" onclick="toggle('envToType', 'Old High', this)">Old High</button>
+                  <button class="toggle-btn" onclick="toggle('envToType', 'Old Low', this)">Old Low</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="field" style="margin-top:14px">
+            <label>Environment Timeframe</label>
+            <div class="toggle-group" style="margin-top:6px">
+              <button class="toggle-btn" onclick="toggle('envTF', 'Monthly', this)">Monthly</button>
+              <button class="toggle-btn" onclick="toggle('envTF', 'Weekly', this)">Weekly</button>
+              <button class="toggle-btn" onclick="toggle('envTF', 'Daily', this)">Daily</button>
+              <button class="toggle-btn" onclick="toggle('envTF', '4H', this)">4H</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 3: BIAS -->
+        <div class="form-section">
+          <div class="form-section-title">③ Bias</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:14px;line-height:1.6">
+            Read the previous candle's OHLC pattern on your chosen timeframe. A tap of internal liquidity can flip or confirm the bias — monitor lower TFs for entry confirmation.
+          </div>
+          <div class="form-grid" style="gap:20px">
+            <div class="field">
+              <label>Bias Timeframe</label>
+              <div class="toggle-group" style="margin-top:6px">
+                <button class="toggle-btn" onclick="toggle('biasTF', 'Monthly', this)">Monthly</button>
+                <button class="toggle-btn" onclick="toggle('biasTF', 'Weekly', this)">Weekly</button>
+                <button class="toggle-btn" onclick="toggle('biasTF', 'Daily', this)">Daily</button>
+              </div>
+            </div>
+            <div class="field">
+              <label>Previous Candle Pattern</label>
+              <div class="toggle-group" style="margin-top:6px">
+                <button class="toggle-btn green" onclick="toggle('candlePattern', 'OLHC — Bullish', this)">▲ OLHC Bullish</button>
+                <button class="toggle-btn red" onclick="toggle('candlePattern', 'OHLC — Bearish', this)">▼ OHLC Bearish</button>
+              </div>
+            </div>
+          </div>
+          <div class="field" style="margin-top:16px">
+            <label>Did a tap of Internal Liquidity change / confirm your bias?</label>
+            <div class="toggle-group" style="margin-top:6px">
+              <button class="toggle-btn green" onclick="toggle('biasFlipped', 'Yes — Tap confirmed bias', this)">✓ Yes — Tap confirmed</button>
+              <button class="toggle-btn" onclick="toggle('biasFlipped', 'Yes — Tap flipped bias', this)">↺ Yes — Tap flipped it</button>
+              <button class="toggle-btn" onclick="toggle('biasFlipped', 'No tap', this)">✗ No tap</button>
+            </div>
+          </div>
+          <div class="field" style="margin-top:14px" id="bias-tap-type-field">
+            <label>What was tapped?</label>
+            <div class="toggle-group" style="margin-top:6px">
+              <button class="toggle-btn multi" onclick="toggleMulti('biasTapType', 'Imbalance/Gap', this)">Imbalance/Gap</button>
+              <button class="toggle-btn multi" onclick="toggleMulti('biasTapType', 'Old Low', this)">Old Low</button>
+              <button class="toggle-btn multi" onclick="toggleMulti('biasTapType', 'Old High', this)">Old High</button>
+            </div>
+          </div>
+          <div class="field" style="margin-top:14px">
+            <label>Final Bias Direction</label>
+            <div class="toggle-group" style="margin-top:6px">
+              <button class="toggle-btn green" onclick="toggle('finalBias', 'Bullish', this)">▲ Bullish</button>
+              <button class="toggle-btn red" onclick="toggle('finalBias', 'Bearish', this)">▼ Bearish</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 4: CONFIRMATION -->
+        <div class="form-section">
+          <div class="form-section-title">④ Confirmation</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:14px;line-height:1.6">
+            A+ Setup = Sweep of previous candle/session HIGH + Internal Liquidity Gap supporting the bias.
+          </div>
+
+          <div class="field">
+            <label>Was there a Sweep of a previous candle or session?</label>
+            <div class="toggle-group" style="margin-top:6px">
+              <button class="toggle-btn multi" onclick="toggleMulti('confirmSweep', 'Previous Monthly', this)">Prev. Monthly</button>
+              <button class="toggle-btn multi" onclick="toggleMulti('confirmSweep', 'Previous Weekly', this)">Prev. Weekly</button>
+              <button class="toggle-btn multi" onclick="toggleMulti('confirmSweep', 'Previous Daily', this)">Prev. Daily</button>
+              <button class="toggle-btn multi" onclick="toggleMulti('confirmSweep', 'Session Sweep', this)">Session Sweep</button>
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:14px" id="session-field">
+            <label>Which Session was swept? (SAST)</label>
+            <div class="toggle-group" style="margin-top:6px">
+              <button class="toggle-btn multi" onclick="toggleMulti('confirmSession', 'Asia (00:00–06:00)', this)">Asia 00:00–06:00</button>
+              <button class="toggle-btn multi" onclick="toggleMulti('confirmSession', 'London (06:00–12:00)', this)">London 06:00–12:00</button>
+              <button class="toggle-btn multi" onclick="toggleMulti('confirmSession', 'New York (12:00–18:00)', this)">NY 12:00–18:00</button>
+              <button class="toggle-btn multi" onclick="toggleMulti('confirmSession', 'PM (18:00–23:00)', this)">PM 18:00–23:00</button>
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:14px">
+            <label>Is there an Internal Liquidity Gap/Imbalance supporting your bias?</label>
+            <div class="toggle-group" style="margin-top:6px">
+              <button class="toggle-btn green" onclick="toggle('confirmGap', 'Yes', this)">✓ Yes</button>
+              <button class="toggle-btn red" onclick="toggle('confirmGap', 'No', this)">✗ No</button>
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:14px">
+            <label>Gap/Imbalance Timeframe <span style="color:var(--muted);font-size:9px">(SELECT ALL THAT APPLY)</span></label>
+            <div class="toggle-group" style="margin-top:6px">
+              <button class="toggle-btn multi" onclick="toggleMulti('confirmGapTF', 'Monthly', this)">Monthly</button>
+              <button class="toggle-btn multi" onclick="toggleMulti('confirmGapTF', 'Weekly', this)">Weekly</button>
+              <button class="toggle-btn multi" onclick="toggleMulti('confirmGapTF', 'Daily', this)">Daily</button>
+              <button class="toggle-btn multi" onclick="toggleMulti('confirmGapTF', '6H', this)">6H</button>
+              <button class="toggle-btn multi" onclick="toggleMulti('confirmGapTF', '4H', this)">4H</button>
+              <button class="toggle-btn multi" onclick="toggleMulti('confirmGapTF', '2H', this)">2H</button>
+            </div>
+          </div>
+
+          <!-- A+ badge auto display -->
+          <div id="aplus-badge" style="display:none;margin-top:14px;padding:12px 16px;background:rgba(0,212,170,0.08);border:1px solid rgba(0,212,170,0.3);border-radius:10px;display:flex;align-items:center;gap:10px">
+            <span style="font-size:20px">⭐</span>
+            <div>
+              <div style="font-family:var(--sans);font-weight:800;color:var(--accent);font-size:14px">A+ SETUP</div>
+              <div style="font-family:var(--mono);font-size:10px;color:var(--muted)">Sweep + Internal Gap confirmed</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 5: ENTRY MODEL -->
+        <div class="form-section">
+          <div class="form-section-title">⑤ Entry Model</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:14px;line-height:1.6">
+            Follow the steps in order. Entry is always taken from the Exchange.
+          </div>
+
+          <div class="field">
+            <label>Step 1 — Sweep of Old High/Low on which TF?</label>
+            <div class="toggle-group" style="margin-top:6px">
+              <button class="toggle-btn multi" onclick="toggleMulti('sweepTF', 'Weekly', this)">Weekly</button>
+              <button class="toggle-btn multi" onclick="toggleMulti('sweepTF', 'Daily', this)">Daily</button>
+              <button class="toggle-btn multi" onclick="toggleMulti('sweepTF', '6H', this)">6H</button>
+              <button class="toggle-btn multi" onclick="toggleMulti('sweepTF', '4H', this)">4H</button>
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:14px">
+            <label>What was swept?</label>
+            <div class="toggle-group" style="margin-top:6px">
+              <button class="toggle-btn" onclick="toggle('sweepType', 'Old High', this)">Old High</button>
+              <button class="toggle-btn" onclick="toggle('sweepType', 'Old Low', this)">Old Low</button>
+              <button class="toggle-btn" onclick="toggle('sweepType', 'Session High', this)">Session High</button>
+              <button class="toggle-btn" onclick="toggle('sweepType', 'Session Low', this)">Session Low</button>
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:14px">
+            <label>Step 2 — Lower TF dropped to</label>
+            <div class="toggle-group" style="margin-top:6px">
+              <button class="toggle-btn" onclick="toggle('lowerTF', '1H', this)">1H</button>
+              <button class="toggle-btn" onclick="toggle('lowerTF', '30M', this)">30M</button>
+              <button class="toggle-btn" onclick="toggle('lowerTF', '15M', this)">15M</button>
+              <button class="toggle-btn" onclick="toggle('lowerTF', '5M', this)">5M</button>
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:14px">
+            <label>Step 3 — CISD confirmed?</label>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin:4px 0 8px">The low that created the high was taken out (or vice versa)</div>
+            <div class="toggle-group">
+              <button class="toggle-btn green" onclick="toggle('cisd', 'Yes', this)">✓ Yes — CISD confirmed</button>
+              <button class="toggle-btn red" onclick="toggle('cisd', 'No', this)">✗ No CISD</button>
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:14px">
+            <label>Step 4 — Exchange confirmed?</label>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin:4px 0 8px">Market closed above/below the Imbalance — gap flipped delivery state</div>
+            <div class="toggle-group">
+              <button class="toggle-btn green" onclick="toggle('exchange', 'Yes', this)">✓ Yes — Exchange confirmed</button>
+              <button class="toggle-btn red" onclick="toggle('exchange', 'No', this)">✗ No Exchange</button>
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:14px">
+            <label>Exchange Timeframe</label>
+            <div class="toggle-group" style="margin-top:6px">
+              <button class="toggle-btn" onclick="toggle('exchangeTF', '1H', this)">1H</button>
+              <button class="toggle-btn" onclick="toggle('exchangeTF', '30M', this)">30M</button>
+              <button class="toggle-btn" onclick="toggle('exchangeTF', '15M', this)">15M</button>
+              <button class="toggle-btn" onclick="toggle('exchangeTF', '5M', this)">5M</button>
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:14px">
+            <label>Step 5 — Entry taken from the Exchange?</label>
+            <div class="toggle-group" style="margin-top:6px">
+              <button class="toggle-btn green" onclick="toggle('entryFromExchange', 'Yes', this)">✓ Yes</button>
+              <button class="toggle-btn red" onclick="toggle('entryFromExchange', 'No', this)">✗ No</button>
+            </div>
+          </div>
+
+          <div class="field" style="margin-top:14px">
+            <label>Did the full Entry Model play out as planned?</label>
+            <div class="toggle-group" style="margin-top:6px">
+              <button class="toggle-btn green" onclick="toggle('setupPlayed', 'Yes', this)">✓ Full model played</button>
+              <button class="toggle-btn" onclick="toggle('setupPlayed', 'Partial', this)">~ Partial</button>
+              <button class="toggle-btn red" onclick="toggle('setupPlayed', 'No', this)">✗ Did not play out</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 6: PSYCHOLOGY -->
+        <div class="form-section">
+          <div class="form-section-title">⑥ Psychology</div>
+          <div class="field">
+            <label>Emotion Before Trade</label>
+            <div class="emotion-group" style="margin-top:6px">
+              <button class="emotion-btn" onclick="toggleEmotion('before', 'calm', this)">😌 <span>Calm</span></button>
+              <button class="emotion-btn" onclick="toggleEmotion('before', 'confident', this)">💪 <span>Confident</span></button>
+              <button class="emotion-btn" onclick="toggleEmotion('before', 'anxious', this)">😰 <span>Anxious</span></button>
+              <button class="emotion-btn" onclick="toggleEmotion('before', 'fomo', this)">🏃 <span>FOMO</span></button>
+              <button class="emotion-btn" onclick="toggleEmotion('before', 'revenge', this)">😤 <span>Revenge</span></button>
+              <button class="emotion-btn" onclick="toggleEmotion('before', 'tired', this)">😴 <span>Tired</span></button>
+              <button class="emotion-btn" onclick="toggleEmotion('before', 'excited', this)">🔥 <span>Excited</span></button>
+            </div>
+          </div>
+          <div class="field" style="margin-top:14px">
+            <label>Emotion After Trade</label>
+            <div class="emotion-group" style="margin-top:6px">
+              <button class="emotion-btn" onclick="toggleEmotion('after', 'satisfied', this)">✅ <span>Satisfied</span></button>
+              <button class="emotion-btn" onclick="toggleEmotion('after', 'frustrated', this)">😤 <span>Frustrated</span></button>
+              <button class="emotion-btn" onclick="toggleEmotion('after', 'regret', this)">😞 <span>Regret</span></button>
+              <button class="emotion-btn" onclick="toggleEmotion('after', 'neutral', this)">😐 <span>Neutral</span></button>
+              <button class="emotion-btn" onclick="toggleEmotion('after', 'greedy', this)">💰 <span>Greedy</span></button>
+              <button class="emotion-btn" onclick="toggleEmotion('after', 'disciplined', this)">🎯 <span>Disciplined</span></button>
+            </div>
+          </div>
+          <div class="field" style="margin-top:14px">
+            <label>Notes / Lesson Learned</label>
+            <textarea id="f-notes" placeholder="What did you do well? What could be improved? Any lesson from this trade..."></textarea>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;justify-content:flex-end;padding-bottom:40px">
+          <button class="btn btn-ghost" onclick="clearForm()">Clear</button>
+          <button class="btn btn-primary" onclick="saveTrade()">✓ Save Trade</button>
+        </div>
+      </div>
+
+      <!-- ALL TRADES PAGE -->
+      <div class="page" id="page-trades">
+        <div class="section-header">
+          <div>
+            <div class="section-title">All Trades</div>
+            <div class="section-sub" id="trades-count">0 trades</div>
+          </div>
+        </div>
+        <div class="asset-filters" id="asset-filter-pills">
+          <button class="asset-pill active" onclick="filterAsset('ALL', this)">All</button>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <div id="trades-table-wrap">
+            <div class="empty-state" style="padding:60px">
+              <div class="empty-icon">📋</div>
+              <div class="empty-text">No trades logged yet</div>
+              <div class="empty-sub">Click "+ Log Trade" to add your first</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- REPORTS PAGE -->
+      <div class="page" id="page-reports">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Reports & Analysis</div>
+            <div class="section-sub">Deep dive into your performance</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
+          <div class="card">
+            <div class="metric-label">Daily P&L</div>
+            <div class="metric-value green" id="r-today">$0.00</div>
+            <div class="wr-bar-bg"><div class="wr-bar-fill" id="r-today-bar" style="width:0%"></div></div>
+          </div>
+          <div class="card">
+            <div class="metric-label">Weekly P&L</div>
+            <div class="metric-value green" id="r-week">$0.00</div>
+            <div class="wr-bar-bg"><div class="wr-bar-fill" id="r-week-bar" style="width:0%"></div></div>
+          </div>
+          <div class="card">
+            <div class="metric-label">Monthly P&L</div>
+            <div class="metric-value green" id="r-month">$0.00</div>
+            <div class="wr-bar-bg"><div class="wr-bar-fill" id="r-month-bar" style="width:0%"></div></div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div class="card">
+            <div class="section-title" style="margin-bottom:14px">Setup Effectiveness</div>
+            <div id="setup-stats">
+              <div class="empty-state"><div class="empty-icon">📐</div><div class="empty-text">No data yet</div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="section-title" style="margin-bottom:14px">Most Traded Hours</div>
+            <div id="hourly-stats">
+              <div class="empty-state"><div class="empty-icon">🕐</div><div class="empty-text">No data yet</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BIAS ANALYSER PAGE -->
+      <div class="page" id="page-bias">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Market Bias Analyser</div>
+            <div class="section-sub">Upload TradingView OHLC CSV — get instant directional bias per timeframe</div>
+          </div>
+        </div>
+
+        <!-- Upload zone -->
+        <div class="card" style="padding:0;overflow:hidden">
+          <div style="padding:20px 20px 0;display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <div style="font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:4px">Step 1 — Select Timeframe of the CSV</div>
+              <div class="toggle-group" id="bias-tf-select" style="margin-top:8px">
+                <button class="toggle-btn active" onclick="selectBiasTF('5M',this)">5M</button>
+                <button class="toggle-btn" onclick="selectBiasTF('15M',this)">15M</button>
+                <button class="toggle-btn" onclick="selectBiasTF('1H',this)">1H</button>
+                <button class="toggle-btn" onclick="selectBiasTF('2H',this)">2H</button>
+                <button class="toggle-btn" onclick="selectBiasTF('4H',this)">4H</button>
+                <button class="toggle-btn" onclick="selectBiasTF('D',this)">Daily</button>
+                <button class="toggle-btn" onclick="selectBiasTF('W',this)">Weekly</button>
+                <button class="toggle-btn" onclick="selectBiasTF('M',this)">Monthly</button>
+                <button class="toggle-btn" onclick="selectBiasTF('Y',this)">Yearly</button>
+              </div>
+            </div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-align:right;line-height:1.6">
+              TradingView → Chart<br>
+              Export → Download CSV
+            </div>
+          </div>
+          <div style="padding:16px 20px 20px">
+            <div style="font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:8px">Step 2 — Upload CSV</div>
+            <div id="bias-drop-zone" style="border:2px dashed var(--border2);border-radius:12px;padding:28px;text-align:center;cursor:pointer;transition:all 0.15s"
+              onclick="document.getElementById('bias-file-input').click()"
+              ondragover="event.preventDefault();this.style.borderColor='var(--accent)'"
+              ondragleave="this.style.borderColor='var(--border2)'"
+              ondrop="handleBiasDrop(event)">
+              <div style="font-size:24px;margin-bottom:6px">📈</div>
+              <div style="font-size:13px;font-weight:700;margin-bottom:3px">Drop OHLC CSV here or click to browse</div>
+              <div style="font-family:var(--mono);font-size:10px;color:var(--muted)">Columns: time, open, high, low, close</div>
+              <input type="file" id="bias-file-input" accept=".csv" style="display:none" onchange="handleBiasFile(this.files[0])">
+            </div>
+          </div>
+        </div>
+
+        <!-- Results -->
+        <div id="bias-results" style="display:none">
+
+          <!-- Summary cards -->
+          <div id="bias-summary-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:16px"></div>
+
+          <!-- Candle table -->
+          <div class="card" style="padding:0;overflow:hidden">
+            <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+              <div>
+                <div class="section-title">Candle-by-Candle Breakdown</div>
+                <div class="section-sub" id="bias-candle-count"></div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <button class="btn btn-ghost" style="font-size:11px" onclick="filterBiasCandles('all',this)">All</button>
+                <button class="btn btn-ghost" style="font-size:11px;color:var(--green);border-color:rgba(0,201,122,0.3)" onclick="filterBiasCandles('bull',this)">▲ Bullish</button>
+                <button class="btn btn-ghost" style="font-size:11px;color:var(--red);border-color:rgba(255,71,87,0.3)" onclick="filterBiasCandles('bear',this)">▼ Bearish</button>
+              </div>
+            </div>
+            <div id="bias-candle-table" style="max-height:420px;overflow-y:auto"></div>
+          </div>
+
+          <!-- Use bias button -->
+          <div id="bias-use-bar" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:12px;display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <div style="font-size:13px;font-weight:700">Use Latest Candle Bias in New Trade?</div>
+              <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px" id="bias-latest-label">—</div>
+            </div>
+            <button class="btn btn-primary" onclick="applyBiasToForm()">→ Apply to Trade Form</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- Trade Detail Modal -->
+<div class="modal-overlay" id="trade-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Trade Details</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+
+
+</div><!-- end main-app -->
+
+<script>
+// ===== AUTH =====
+const CREDENTIALS = { username: 'Tebogo', password: '1234LOG' };
+
+function doLogin() {
+  const user = document.getElementById('login-user').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-error');
+
+  if (user === CREDENTIALS.username && pass === CREDENTIALS.password) {
+    localStorage.setItem('aurafarm_session', '1');
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('main-app').style.display = 'flex';
+    initApp();
+  } else {
+    errEl.style.display = 'block';
+    document.getElementById('login-pass').value = '';
+    setTimeout(() => errEl.style.display = 'none', 3000);
+  }
+}
+
+function doLogout() {
+  if (!confirm('Log out of AuraFarm?')) return;
+  localStorage.removeItem('aurafarm_session');
+  document.getElementById('main-app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-user').value = '';
+  document.getElementById('login-pass').value = '';
+}
+
+function checkSession() {
+  if (localStorage.getItem('aurafarm_session') === '1') {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('main-app').style.display = 'flex';
+    initApp();
+  }
+}
+
+// ===== STATE =====
+let trades = JSON.parse(localStorage.getItem('aurafarm_trades') || '[]');
+let formState = {
+  direction: '', outcome: '', emotionBefore: '', emotionAfter: '',
+  toggles: {},
+  multi: { biasTapType: [], confirmSweep: [], confirmSession: [], confirmGapTF: [], sweepTF: [] }
+};
+let calendarMonth = new Date();
+let filterAssetActive = 'ALL';
+
+// ===== INIT =====
+document.addEventListener('DOMContentLoaded', () => {
+  checkSession();
+});
+
+function initApp() {
+  const now = new Date();
+  document.getElementById('date-display').textContent =
+    now.toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+
+  // Set default datetime
+  const dt = document.getElementById('f-datetime');
+  if (dt) {
+    const pad = n => String(n).padStart(2, '0');
+    dt.value = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  }
+
+  renderCalendar();
+  updateDashboard();
+  renderTradesTable();
+  updateReports();
+}
+
+// ===== NAVIGATION =====
+function showPage(id, navEl) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  if (navEl) navEl.classList.add('active');
+  const titles = { dashboard: 'Dashboard', calendar: 'Calendar', newtrade: 'Log New Trade', trades: 'All Trades', reports: 'Reports', bias: 'Bias Analyser' };
+  document.getElementById('page-title').textContent = titles[id] || id;
+
+  if (id === 'calendar') renderCalendar();
+  if (id === 'trades') renderTradesTable();
+  if (id === 'reports') updateReports();
+  if (id === 'dashboard') updateDashboard();
+}
+
+// ===== FORM TOGGLES =====
+function toggleDir(val, btn) {
+  formState.direction = val;
+  document.querySelectorAll('.toggle-btn.green[onclick*="toggleDir"], .toggle-btn.red[onclick*="toggleDir"]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function toggleOutcome(val, btn) {
+  formState.outcome = val;
+  document.querySelectorAll('[onclick*="toggleOutcome"]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function toggleEmotion(timing, val, btn) {
+  if (timing === 'before') formState.emotionBefore = val;
+  else formState.emotionAfter = val;
+  document.querySelectorAll(`[onclick*="toggleEmotion('${timing}'"]`).forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// ===== R:R CALCULATOR =====
+function calcRR() {
+  const entry = parseFloat(document.getElementById('f-entry').value);
+  const sl = parseFloat(document.getElementById('f-sl').value);
+  const tp = parseFloat(document.getElementById('f-tp').value);
+  const el = document.getElementById('rr-calc');
+  if (entry && sl && tp && entry !== sl) {
+    const risk = Math.abs(entry - sl);
+    const reward = Math.abs(tp - entry);
+    const rr = (reward / risk).toFixed(2);
+    el.textContent = `1 : ${rr}`;
+    el.style.color = rr >= 2 ? 'var(--green)' : rr >= 1 ? 'var(--yellow)' : 'var(--red)';
+  } else {
+    el.textContent = '—';
+    el.style.color = 'var(--accent)';
+  }
+}
+
+// ===== SAVE TRADE =====
+function saveTrade() {
+  const asset = document.getElementById('f-asset').value;
+  const dt = document.getElementById('f-datetime').value;
+  const pnl = parseFloat(document.getElementById('f-pnl').value) || 0;
+
+  if (!asset) { alert('Please select an asset.'); return; }
+  if (!dt) { alert('Please enter a date and time.'); return; }
+  if (!formState.outcome) { alert('Please select WIN, LOSS, or BREAKEVEN.'); return; }
+
+  const entry = parseFloat(document.getElementById('f-entry').value);
+  const sl = parseFloat(document.getElementById('f-sl').value);
+  const tp = parseFloat(document.getElementById('f-tp').value);
+  let rr = null;
+  if (entry && sl && tp && entry !== sl) {
+    rr = (Math.abs(tp - entry) / Math.abs(entry - sl)).toFixed(2);
+  }
+
+  const trade = {
+    id: Date.now(),
+    datetime: dt,
+    asset,
+    direction: formState.direction,
+    entry, sl, tp,
+    exit: parseFloat(document.getElementById('f-exit').value) || null,
+    pnl,
+    rr,
+    outcome: formState.outcome,
+    // Environment
+    envFrom: formState.toggles.envFrom || '',
+    envFromType: formState.toggles.envFromType || '',
+    envTo: formState.toggles.envTo || '',
+    envToType: formState.toggles.envToType || '',
+    envTF: formState.toggles.envTF || '',
+    // Bias
+    biasTF: formState.toggles.biasTF || '',
+    candlePattern: formState.toggles.candlePattern || '',
+    biasFlipped: formState.toggles.biasFlipped || '',
+    biasTapType: formState.multi.biasTapType?.join(', ') || '',
+    finalBias: formState.toggles.finalBias || '',
+    // Confirmation
+    confirmSweep: formState.multi.confirmSweep?.join(', ') || '',
+    confirmSession: formState.multi.confirmSession?.join(', ') || '',
+    confirmGap: formState.toggles.confirmGap || '',
+    confirmGapTF: formState.multi.confirmGapTF?.join(', ') || '',
+    aplus: checkAplus(),
+    // Entry Model
+    sweepTF: formState.multi.sweepTF?.join(', ') || '',
+    sweepType: formState.toggles.sweepType || '',
+    lowerTF: formState.toggles.lowerTF || '',
+    cisd: formState.toggles.cisd || '',
+    exchange: formState.toggles.exchange || '',
+    exchangeTF: formState.toggles.exchangeTF || '',
+    entryFromExchange: formState.toggles.entryFromExchange || '',
+    setupPlayed: formState.toggles.setupPlayed || '',
+    // Psychology
+    emotionBefore: formState.emotionBefore,
+    emotionAfter: formState.emotionAfter,
+    notes: document.getElementById('f-notes').value,
+  };
+
+  trades.unshift(trade);
+  localStorage.setItem('aurafarm_trades', JSON.stringify(trades));
+
+  clearForm();
+  updateDashboard();
+  updateReports();
+
+  // Show success
+  const btn = document.querySelector('[onclick="saveTrade()"]');
+  btn.textContent = '✓ Saved!';
+  btn.style.background = 'var(--green)';
+  setTimeout(() => {
+    btn.textContent = '✓ Save Trade';
+    btn.style.background = '';
+    showPage('trades', null);
+    document.querySelector('[onclick*="trades"]').classList.add('active');
+    document.querySelector('.nav-item.active')?.classList.remove('active');
+    document.querySelectorAll('.nav-item').forEach(n => { if(n.getAttribute('onclick')?.includes("'trades'")) n.classList.add('active'); });
+  }, 800);
+}
+
+function checkAplus() {
+  const hasSweep = (formState.multi.confirmSweep?.length > 0);
+  const hasGap = formState.toggles.confirmGap === 'Yes';
+  return hasSweep && hasGap;
+}
+
+function updateAplusBadge() {
+  const badge = document.getElementById('aplus-badge');
+  if (!badge) return;
+  if (checkAplus()) {
+    badge.style.display = 'flex';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// Patch toggleMulti to also update A+ badge
+const _origToggleMulti = toggleMulti;
+function toggleMulti(key, val, btn) {
+  if (!formState.multi[key]) formState.multi[key] = [];
+  const idx = formState.multi[key].indexOf(val);
+  if (idx === -1) { formState.multi[key].push(val); btn.classList.add('active'); }
+  else { formState.multi[key].splice(idx, 1); btn.classList.remove('active'); }
+  updateAplusBadge();
+}
+
+// Also patch toggle to update A+ badge
+const _origToggle = toggle;
+function toggle(key, val, btn) {
+  formState.toggles[key] = val;
+  try { document.querySelectorAll(`[onclick*="toggle('${key}'"]`).forEach(b => b.classList.remove('active')); } catch(e) {}
+  btn.classList.add('active');
+  updateAplusBadge();
+}
+
+function clearForm() {
+  document.getElementById('f-asset').value = '';
+  document.getElementById('f-entry').value = '';
+  document.getElementById('f-sl').value = '';
+  document.getElementById('f-tp').value = '';
+  document.getElementById('f-exit').value = '';
+  document.getElementById('f-pnl').value = '';
+  document.getElementById('f-notes').value = '';
+  document.getElementById('rr-calc').textContent = '—';
+  document.querySelectorAll('.toggle-btn, .emotion-btn').forEach(b => b.classList.remove('active'));
+  formState = {
+    direction: '', outcome: '', emotionBefore: '', emotionAfter: '',
+    toggles: {},
+    multi: { biasTapType: [], confirmSweep: [], confirmSession: [], confirmGapTF: [], sweepTF: [] }
+  };
+  const badge = document.getElementById('aplus-badge');
+  if (badge) badge.style.display = 'none';
+}
+
+// ===== DASHBOARD =====
+function updateDashboard() {
+  const totalPnl = trades.reduce((s, t) => s + (t.pnl || 0), 0);
+  const wins = trades.filter(t => t.outcome === 'WIN');
+  const losses = trades.filter(t => t.outcome === 'LOSS');
+  const winRate = trades.length ? ((wins.length / trades.length) * 100).toFixed(0) : 0;
+
+  const grossWins = wins.reduce((s, t) => s + Math.abs(t.pnl || 0), 0);
+  const grossLoss = losses.reduce((s, t) => s + Math.abs(t.pnl || 0), 0);
+  const pf = grossLoss > 0 ? (grossWins / grossLoss).toFixed(2) : wins.length > 0 ? '∞' : '0.00';
+
+  const rrTrades = trades.filter(t => t.rr);
+  const avgRR = rrTrades.length ? (rrTrades.reduce((s, t) => s + parseFloat(t.rr), 0) / rrTrades.length).toFixed(2) : '0.00';
+
+  document.getElementById('m-total-pnl').textContent = fmtPnl(totalPnl);
+  document.getElementById('m-total-pnl').className = 'metric-value ' + (totalPnl >= 0 ? 'green' : 'red');
+  document.getElementById('m-total-trades').textContent = `${trades.length} trade${trades.length !== 1 ? 's' : ''} logged`;
+  document.getElementById('m-winrate').textContent = winRate + '%';
+  document.getElementById('m-wl').textContent = `${wins.length}W / ${losses.length}L`;
+  document.getElementById('m-pf').textContent = pf;
+  document.getElementById('m-rr').textContent = avgRR;
+
+  // Sidebar stats
+  const now = new Date();
+  const todayStr = now.toISOString().slice(0, 10);
+  const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay());
+  const monthStr = now.toISOString().slice(0, 7);
+
+  const todayPnl = trades.filter(t => t.datetime?.slice(0, 10) === todayStr).reduce((s, t) => s + (t.pnl || 0), 0);
+  const weekPnl = trades.filter(t => new Date(t.datetime) >= weekStart).reduce((s, t) => s + (t.pnl || 0), 0);
+  const monthPnl = trades.filter(t => t.datetime?.slice(0, 7) === monthStr).reduce((s, t) => s + (t.pnl || 0), 0);
+
+  setSbStat('sb-today', todayPnl);
+  setSbStat('sb-week', weekPnl);
+  setSbStat('sb-month', monthPnl);
+
+  // Recent trades
+  const container = document.getElementById('recent-trades-list');
+  if (trades.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">No trades yet</div><div class="empty-sub">Log your first trade to get started</div></div>`;
+  } else {
+    container.innerHTML = trades.slice(0, 5).map(t => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="showTradeModal(${t.id})">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="ticker">${t.asset}</span>
+          <span class="tag" style="${t.direction === 'LONG' ? '' : 'color:var(--red);border-color:rgba(255,71,87,0.2);background:rgba(255,71,87,0.08)'}">${t.direction || '—'}</span>
+        </div>
+        <div style="text-align:right">
+          <div style="font-family:var(--mono);font-size:13px;font-weight:700;color:${(t.pnl||0) >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtPnl(t.pnl)}</div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--muted)">${fmtDate(t.datetime)}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // Emotion stats
+  const emotionContainer = document.getElementById('emotion-stats');
+  const emotionMap = {};
+  trades.forEach(t => {
+    if (t.emotionBefore) {
+      if (!emotionMap[t.emotionBefore]) emotionMap[t.emotionBefore] = { trades: 0, pnl: 0 };
+      emotionMap[t.emotionBefore].trades++;
+      emotionMap[t.emotionBefore].pnl += (t.pnl || 0);
+    }
+  });
+
+  if (Object.keys(emotionMap).length === 0) {
+    emotionContainer.innerHTML = `<div class="empty-state"><div class="empty-icon">🧠</div><div class="empty-text">No data yet</div></div>`;
+  } else {
+    emotionContainer.innerHTML = Object.entries(emotionMap).map(([em, data]) => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:13px;text-transform:capitalize">${em}</span>
+        <div style="text-align:right">
+          <span style="font-family:var(--mono);font-size:12px;color:${data.pnl >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtPnl(data.pnl)}</span>
+          <span style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-left:8px">${data.trades}t</span>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // Asset breakdown
+  const assetContainer = document.getElementById('asset-breakdown');
+  const assetMap = {};
+  trades.forEach(t => {
+    if (!assetMap[t.asset]) assetMap[t.asset] = { trades: 0, pnl: 0, wins: 0 };
+    assetMap[t.asset].trades++;
+    assetMap[t.asset].pnl += (t.pnl || 0);
+    if (t.outcome === 'WIN') assetMap[t.asset].wins++;
+  });
+
+  if (Object.keys(assetMap).length === 0) {
+    assetContainer.innerHTML = `<div class="empty-state"><div class="empty-icon">📊</div><div class="empty-text">No trades yet</div></div>`;
+  } else {
+    assetContainer.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px">` +
+      Object.entries(assetMap).map(([asset, data]) => {
+        const wr = data.trades ? Math.round((data.wins / data.trades) * 100) : 0;
+        return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px">
+          <div class="ticker" style="margin-bottom:6px">${asset}</div>
+          <div style="font-family:var(--mono);font-size:14px;font-weight:700;color:${data.pnl >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtPnl(data.pnl)}</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:3px">${data.trades}t · ${wr}% WR</div>
+        </div>`;
+      }).join('') + `</div>`;
+  }
+}
+
+function setSbStat(id, val) {
+  const el = document.getElementById(id);
+  el.textContent = fmtPnl(val);
+  el.className = 'stat-val ' + (val >= 0 ? 'green' : 'red');
+}
+
+// ===== CALENDAR =====
+function renderCalendar() {
+  const year = calendarMonth.getFullYear();
+  const month = calendarMonth.getMonth();
+
+  document.getElementById('cal-month-label').textContent =
+    calendarMonth.toLocaleDateString('en-ZA', { month: 'long', year: 'numeric' });
+
+  const headers = document.getElementById('cal-headers');
+  headers.innerHTML = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    .map(d => `<div class="cal-header">${d}</div>`).join('');
+
+  const grid = document.getElementById('cal-grid');
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = new Date();
+
+  // Build daily trade data
+  const dailyData = {};
+  trades.forEach(t => {
+    const d = t.datetime?.slice(0, 10);
+    if (!d) return;
+    if (!dailyData[d]) dailyData[d] = { pnl: 0, count: 0 };
+    dailyData[d].pnl += (t.pnl || 0);
+    dailyData[d].count++;
+  });
+
+  let html = '';
+  for (let i = 0; i < firstDay; i++) html += `<div class="cal-day empty"></div>`;
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const pad = n => String(n).padStart(2, '0');
+    const dateStr = `${year}-${pad(month + 1)}-${pad(d)}`;
+    const data = dailyData[dateStr];
+    const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === d;
+    let cls = 'cal-day';
+    if (isToday) cls += ' today';
+    if (data) cls += data.pnl >= 0 ? ' has-trades win' : ' has-trades loss';
+
+    html += `<div class="${cls}" onclick="showDayTrades('${dateStr}')">
+      <div class="cal-date">${d}</div>
+      ${data ? `<div class="cal-pnl ${data.pnl >= 0 ? 'green' : 'red'}">${fmtPnl(data.pnl)}</div>
+      <div class="cal-trades">${data.count} trade${data.count !== 1 ? 's' : ''}</div>` : ''}
+    </div>`;
+  }
+
+  grid.innerHTML = html;
+
+  // Month stats
+  const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`;
+  const monthTrades = trades.filter(t => t.datetime?.slice(0, 7) === monthStr);
+  const monthPnl = monthTrades.reduce((s, t) => s + (t.pnl || 0), 0);
+  const monthWins = monthTrades.filter(t => t.outcome === 'WIN').length;
+
+  const statsEl = document.getElementById('cal-month-stats');
+  statsEl.innerHTML = `
+    <div class="metric-card green-accent">
+      <div class="metric-label">Month P&L</div>
+      <div class="metric-value ${monthPnl >= 0 ? 'green' : 'red'}">${fmtPnl(monthPnl)}</div>
+    </div>
+    <div class="metric-card accent-accent">
+      <div class="metric-label">Trades This Month</div>
+      <div class="metric-value accent">${monthTrades.length}</div>
+    </div>
+    <div class="metric-card blue-accent">
+      <div class="metric-label">Win Rate</div>
+      <div class="metric-value accent">${monthTrades.length ? Math.round((monthWins / monthTrades.length) * 100) : 0}%</div>
+    </div>
+  `;
+}
+
+function changeMonth(dir) {
+  calendarMonth.setMonth(calendarMonth.getMonth() + dir);
+  renderCalendar();
+}
+
+function showDayTrades(dateStr) {
+  const dayTrades = trades.filter(t => t.datetime?.slice(0, 10) === dateStr);
+  if (dayTrades.length === 0) return;
+
+  const modal = document.getElementById('trade-modal');
+  document.getElementById('modal-title').textContent = `Trades on ${dateStr}`;
+  document.getElementById('modal-content').innerHTML = dayTrades.map(t => tradeDetailHTML(t)).join('<hr style="border-color:var(--border);margin:16px 0">');
+  modal.classList.add('open');
+}
+
+// ===== TRADES TABLE =====
+function renderTradesTable() {
+  const wrap = document.getElementById('trades-table-wrap');
+  document.getElementById('trades-count').textContent = `${trades.length} trade${trades.length !== 1 ? 's' : ''}`;
+
+  // Asset filter pills
+  const assets = ['ALL', ...new Set(trades.map(t => t.asset).filter(Boolean))];
+  document.getElementById('asset-filter-pills').innerHTML = assets.map(a =>
+    `<button class="asset-pill ${a === filterAssetActive ? 'active' : ''}" onclick="filterAsset('${a}', this)">${a}</button>`
+  ).join('');
+
+  const filtered = filterAssetActive === 'ALL' ? trades : trades.filter(t => t.asset === filterAssetActive);
+
+  if (filtered.length === 0) {
+    wrap.innerHTML = `<div class="empty-state" style="padding:60px"><div class="empty-icon">📋</div><div class="empty-text">No trades logged yet</div><div class="empty-sub">Click "+ Log Trade" to add your first</div></div>`;
+    return;
+  }
+
+  wrap.innerHTML = `<table class="trades-table">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Asset</th>
+        <th>Dir</th>
+        <th>P&L</th>
+        <th>R:R</th>
+        <th>Setup</th>
+        <th>Outcome</th>
+        <th>Emotion</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${filtered.map(t => `
+        <tr onclick="showTradeModal(${t.id})">
+          <td style="color:var(--muted)">${fmtDate(t.datetime)}</td>
+          <td><span class="ticker">${t.asset}</span></td>
+          <td><span class="tag" style="${t.direction === 'SHORT' ? 'color:var(--red);border-color:rgba(255,71,87,0.2);background:rgba(255,71,87,0.08)' : ''}">${t.direction || '—'}</span></td>
+          <td style="color:${(t.pnl||0) >= 0 ? 'var(--green)' : 'var(--red)'}; font-weight:700">${fmtPnl(t.pnl)}</td>
+          <td>${t.rr ? `1:${t.rr}` : '—'}</td>
+          <td>${t.entryTrigger ? `<span class="tag">${t.entryTrigger.split(' ').slice(0,2).join(' ')}</span>` : '—'}</td>
+          <td><span class="badge ${t.outcome === 'WIN' ? 'win' : t.outcome === 'LOSS' ? 'loss' : ''}">${t.outcome || '—'}</span></td>
+          <td style="font-size:16px">${emotionEmoji(t.emotionBefore)}</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>`;
+}
+
+function filterAsset(asset, btn) {
+  filterAssetActive = asset;
+  renderTradesTable();
+}
+
+// ===== REPORTS =====
+function updateReports() {
+  const now = new Date();
+  const todayStr = now.toISOString().slice(0, 10);
+  const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay());
+  const monthStr = now.toISOString().slice(0, 7);
+
+  const todayPnl = trades.filter(t => t.datetime?.slice(0, 10) === todayStr).reduce((s, t) => s + (t.pnl || 0), 0);
+  const weekPnl = trades.filter(t => new Date(t.datetime) >= weekStart).reduce((s, t) => s + (t.pnl || 0), 0);
+  const monthPnl = trades.filter(t => t.datetime?.slice(0, 7) === monthStr).reduce((s, t) => s + (t.pnl || 0), 0);
+
+  const setPnl = (id, barId, val) => {
+    const el = document.getElementById(id);
+    el.textContent = fmtPnl(val);
+    el.className = 'metric-value ' + (val >= 0 ? 'green' : 'red');
+    document.getElementById(barId).style.width = val > 0 ? '100%' : '0%';
+  };
+
+  setPnl('r-today', 'r-today-bar', todayPnl);
+  setPnl('r-week', 'r-week-bar', weekPnl);
+  setPnl('r-month', 'r-month-bar', monthPnl);
+
+  // Setup stats
+  const setupMap = {};
+  trades.forEach(t => {
+    const key = t.entryTrigger || 'No setup';
+    if (!setupMap[key]) setupMap[key] = { trades: 0, wins: 0, pnl: 0 };
+    setupMap[key].trades++;
+    if (t.outcome === 'WIN') setupMap[key].wins++;
+    setupMap[key].pnl += (t.pnl || 0);
+  });
+
+  const setupEl = document.getElementById('setup-stats');
+  if (Object.keys(setupMap).length === 0) {
+    setupEl.innerHTML = `<div class="empty-state"><div class="empty-icon">📐</div><div class="empty-text">No data yet</div></div>`;
+  } else {
+    setupEl.innerHTML = Object.entries(setupMap).map(([setup, d]) => {
+      const wr = Math.round((d.wins / d.trades) * 100);
+      return `<div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="font-size:12px">${setup}</span>
+          <span style="font-family:var(--mono);font-size:11px;color:${d.pnl >= 0 ? 'var(--green)' : 'var(--red)'}">
+            ${fmtPnl(d.pnl)} · ${wr}% WR
+          </span>
+        </div>
+        <div class="wr-bar-bg"><div class="wr-bar-fill" style="width:${wr}%"></div></div>
+      </div>`;
+    }).join('');
+  }
+
+  // Hourly stats
+  const hourMap = {};
+  trades.forEach(t => {
+    if (!t.datetime) return;
+    const hour = new Date(t.datetime).getHours();
+    if (!hourMap[hour]) hourMap[hour] = { trades: 0, pnl: 0 };
+    hourMap[hour].trades++;
+    hourMap[hour].pnl += (t.pnl || 0);
+  });
+
+  const hourEl = document.getElementById('hourly-stats');
+  if (Object.keys(hourMap).length === 0) {
+    hourEl.innerHTML = `<div class="empty-state"><div class="empty-icon">🕐</div><div class="empty-text">No data yet</div></div>`;
+  } else {
+    hourEl.innerHTML = Object.entries(hourMap).sort((a, b) => b[1].trades - a[1].trades).slice(0, 6).map(([hour, d]) => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span style="font-family:var(--mono);font-size:12px">${String(hour).padStart(2,'0')}:00</span>
+        <div>
+          <span style="font-family:var(--mono);font-size:11px;color:var(--muted)">${d.trades}t</span>
+          <span style="font-family:var(--mono);font-size:12px;margin-left:10px;color:${d.pnl >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtPnl(d.pnl)}</span>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+// ===== MODAL =====
+function showTradeModal(id) {
+  const trade = trades.find(t => t.id === id);
+  if (!trade) return;
+  document.getElementById('modal-title').textContent = `${trade.asset} — ${fmtDate(trade.datetime)}`;
+  document.getElementById('modal-content').innerHTML = tradeDetailHTML(trade) + `
+    <div style="margin-top:20px;display:flex;justify-content:flex-end">
+      <button class="btn" style="background:rgba(255,71,87,0.1);color:var(--red);border:1px solid rgba(255,71,87,0.2)" onclick="deleteTrade(${id})">Delete Trade</button>
+    </div>
+  `;
+  document.getElementById('trade-modal').classList.add('open');
+}
+
+function tradeDetailHTML(t) {
+  const tag = (val, red) => val ? `<span class="tag ${red?'red':''}">${val}</span>` : '';
+  const aplus = t.aplus ? `<span style="background:rgba(0,212,170,0.12);border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:6px;font-size:11px;font-family:var(--mono);font-weight:700">⭐ A+</span>` : '';
+  return `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
+      <div><div class="metric-label">Asset</div><div class="ticker" style="font-size:18px">${t.asset}</div></div>
+      <div><div class="metric-label">Direction</div><div style="font-family:var(--mono);font-size:16px;color:${t.direction==='LONG'?'var(--green)':'var(--red)'}">${t.direction||'—'}</div></div>
+      <div><div class="metric-label">Outcome</div><span class="badge ${t.outcome==='WIN'?'win':'loss'}" style="font-size:12px">${t.outcome||'—'}</span> ${aplus}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:16px">
+      <div><div class="metric-label">Entry</div><div style="font-family:var(--mono)">${t.entry||'—'}</div></div>
+      <div><div class="metric-label">Stop Loss</div><div style="font-family:var(--mono)">${t.sl||'—'}</div></div>
+      <div><div class="metric-label">Take Profit</div><div style="font-family:var(--mono)">${t.tp||'—'}</div></div>
+      <div><div class="metric-label">P&L</div><div style="font-family:var(--mono);font-weight:700;color:${(t.pnl||0)>=0?'var(--green)':'var(--red)'}">${fmtPnl(t.pnl)}</div></div>
+    </div>
+
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:10px">② Environment</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${t.envFrom ? tag(`FROM: ${t.envFrom}${t.envFromType?' ('+t.envFromType+')':''}`) : ''}
+        ${t.envTo ? tag(`TO: ${t.envTo}${t.envToType?' ('+t.envToType+')':''}`) : ''}
+        ${t.envTF ? tag(t.envTF) : ''}
+        ${!t.envFrom && !t.envTo ? '<span style="color:var(--muted);font-size:12px">Not recorded</span>' : ''}
+      </div>
+    </div>
+
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:10px">③ Bias</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${t.biasTF ? tag(t.biasTF) : ''}
+        ${t.candlePattern ? tag(t.candlePattern, t.candlePattern?.includes('Bearish')) : ''}
+        ${t.biasFlipped ? tag(t.biasFlipped) : ''}
+        ${t.biasTapType ? tag('Tapped: '+t.biasTapType) : ''}
+        ${t.finalBias ? `<span class="tag" style="color:${t.finalBias==='Bullish'?'var(--green)':'var(--red)'};border-color:${t.finalBias==='Bullish'?'rgba(0,201,122,0.3)':'rgba(255,71,87,0.3)'};background:${t.finalBias==='Bullish'?'rgba(0,201,122,0.08)':'rgba(255,71,87,0.08)'}">Final: ${t.finalBias}</span>` : ''}
+      </div>
+    </div>
+
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:10px">④ Confirmation ${t.aplus ? '⭐ A+' : ''}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${t.confirmSweep ? tag('Sweep: '+t.confirmSweep) : ''}
+        ${t.confirmSession ? tag('Session: '+t.confirmSession) : ''}
+        ${t.confirmGap ? tag('Gap: '+t.confirmGap) : ''}
+        ${t.confirmGapTF ? tag('Gap TF: '+t.confirmGapTF) : ''}
+        ${!t.confirmSweep && !t.confirmGap ? '<span style="color:var(--muted);font-size:12px">Not recorded</span>' : ''}
+      </div>
+    </div>
+
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px">
+      <div style="font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:10px">⑤ Entry Model</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${t.sweepTF ? tag('Sweep TF: '+t.sweepTF) : ''}
+        ${t.sweepType ? tag(t.sweepType) : ''}
+        ${t.lowerTF ? tag('Dropped to: '+t.lowerTF) : ''}
+        ${t.cisd ? tag('CISD: '+t.cisd, t.cisd==='No') : ''}
+        ${t.exchange ? tag('Exchange: '+t.exchange, t.exchange==='No') : ''}
+        ${t.exchangeTF ? tag('Exchange TF: '+t.exchangeTF) : ''}
+        ${t.entryFromExchange ? tag('From Exchange: '+t.entryFromExchange, t.entryFromExchange==='No') : ''}
+        ${t.setupPlayed ? tag('Model played: '+t.setupPlayed, t.setupPlayed==='No') : ''}
+        ${!t.sweepTF && !t.cisd ? '<span style="color:var(--muted);font-size:12px">Not recorded</span>' : ''}
+      </div>
+    </div>
+
+    ${(t.emotionBefore || t.emotionAfter) ? `
+    <div style="display:flex;gap:12px;margin-bottom:10px">
+      ${t.emotionBefore ? `<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;flex:1"><div class="metric-label" style="margin-bottom:4px">Before</div><div style="font-size:18px">${emotionEmoji(t.emotionBefore)} <span style="font-size:12px;text-transform:capitalize">${t.emotionBefore}</span></div></div>` : ''}
+      ${t.emotionAfter ? `<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;flex:1"><div class="metric-label" style="margin-bottom:4px">After</div><div style="font-size:18px">${emotionEmoji(t.emotionAfter)} <span style="font-size:12px;text-transform:capitalize">${t.emotionAfter}</span></div></div>` : ''}
+    </div>` : ''}
+    ${t.notes ? `<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px"><div class="metric-label" style="margin-bottom:6px">Notes</div><div style="font-size:13px;line-height:1.6;color:var(--text)">${t.notes}</div></div>` : ''}
+  `;
+}
+
+function deleteTrade(id) {
+  if (!confirm('Delete this trade?')) return;
+  trades = trades.filter(t => t.id !== id);
+  localStorage.setItem('aurafarm_trades', JSON.stringify(trades));
+  closeModal();
+  updateDashboard();
+  renderTradesTable();
+  renderCalendar();
+  updateReports();
+}
+
+function closeModal() {
+  document.getElementById('trade-modal').classList.remove('open');
+}
+
+document.getElementById('trade-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('trade-modal')) closeModal();
+});
+
+// ===== HELPERS =====
+function fmtPnl(val) {
+  const v = parseFloat(val) || 0;
+  return (v >= 0 ? '+' : '-') + 'R' + Math.abs(v).toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function fmtDate(dt) {
+  if (!dt) return '—';
+  return new Date(dt).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function emotionEmoji(e) {
+  const map = { calm: '😌', confident: '💪', anxious: '😰', fomo: '🏃', revenge: '😤', tired: '😴', excited: '🔥', satisfied: '✅', frustrated: '😤', regret: '😞', neutral: '😐', greedy: '💰', disciplined: '🎯' };
+  return map[e] || '—';
+}
+
+// ===== BIAS ANALYSER =====
+let biasData = { tf: '5M', candles: [], latestBias: null };
+
+function splitCsvLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    if (line[i] === '"') { inQuotes = !inQuotes; continue; }
+    if (line[i] === ',' && !inQuotes) { result.push(current); current = ''; continue; }
+    current += line[i];
+  }
+  result.push(current);
+  return result;
+}
+
+function selectBiasTF(tf, btn) {
+  biasData.tf = tf;
+  document.querySelectorAll('#bias-tf-select .toggle-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function handleBiasDrop(e) {
+  e.preventDefault();
+  document.getElementById('bias-drop-zone').style.borderColor = 'var(--border2)';
+  const file = e.dataTransfer.files[0];
+  if (file) handleBiasFile(file);
+}
+
+function handleBiasFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => parseBiasCsv(e.target.result);
+  reader.readAsText(file);
+}
+
+function parseBiasCsv(text) {
+  const lines = text.trim().split('\n').filter(l => l.trim());
+  if (lines.length < 2) return;
+
+  // Detect if first row is header or data
+  const firstRow = lines[0].toLowerCase();
+  const hasHeader = firstRow.includes('time') || firstRow.includes('open') || firstRow.includes('close');
+  const dataLines = hasHeader ? lines.slice(1) : lines;
+
+  const candles = [];
+  for (const line of dataLines) {
+    const parts = splitCsvLine(line);
+    if (parts.length < 5) continue;
+
+    // time, open, high, low, close
+    const rawTime = parts[0]?.replace(/"/g,'').trim();
+    const open  = parseFloat(parts[1]);
+    const high  = parseFloat(parts[2]);
+    const low   = parseFloat(parts[3]);
+    const close = parseFloat(parts[4]);
+
+    if (isNaN(open) || isNaN(close)) continue;
+
+    // Convert unix timestamp or parse date string
+    let dt;
+    if (/^\d{10,13}$/.test(rawTime)) {
+      const ts = rawTime.length === 13 ? parseInt(rawTime) : parseInt(rawTime) * 1000;
+      dt = new Date(ts);
+    } else {
+      dt = new Date(rawTime);
+    }
+
+    const isBullish = close > open;
+    // ICT OHLC pattern: bearish = O > H sequence unlikely, so we check close vs open
+    // Bullish candle = OLHC (open lowest area, close highest)
+    // Bearish candle = OHLC (open highest area, close lowest)
+    const candleRange = high - low;
+    const bodySize = Math.abs(close - open);
+    const bodyPct = candleRange > 0 ? ((bodySize / candleRange) * 100).toFixed(1) : '0';
+
+    // Determine ICT bias label
+    let biasLabel, biasType;
+    if (close > open) {
+      biasLabel = 'OLHC — Bullish';
+      biasType = 'bull';
+    } else if (close < open) {
+      biasLabel = 'OHLC — Bearish';
+      biasType = 'bear';
+    } else {
+      biasLabel = 'Doji — Neutral';
+      biasType = 'neutral';
+    }
+
+    candles.push({ dt, open, high, low, close, biasLabel, biasType, bodyPct, range: candleRange.toFixed(2) });
+  }
+
+  if (candles.length === 0) {
+    alert('Could not parse candles. Make sure the CSV has columns: time, open, high, low, close');
+    return;
+  }
+
+  biasData.candles = candles;
+  biasData.latestBias = candles[candles.length - 1];
+  renderBiasResults();
+}
+
+function renderBiasResults() {
+  const { candles, tf } = biasData;
+  document.getElementById('bias-results').style.display = 'block';
+
+  const bulls  = candles.filter(c => c.biasType === 'bull');
+  const bears  = candles.filter(c => c.biasType === 'bear');
+  const neutral = candles.filter(c => c.biasType === 'neutral');
+  const latest = candles[candles.length - 1];
+  const bullPct = candles.length ? Math.round((bulls.length / candles.length) * 100) : 0;
+
+  // Consecutive bias streak
+  let streak = 0, streakType = latest?.biasType;
+  for (let i = candles.length - 1; i >= 0; i--) {
+    if (candles[i].biasType === streakType) streak++;
+    else break;
+  }
+
+  const tfLabel = { '5M':'5 Min','15M':'15 Min','1H':'1 Hour','2H':'2 Hour','4H':'4 Hour','D':'Daily','W':'Weekly','M':'Monthly','Y':'Yearly' }[tf] || tf;
+
+  // Summary cards
+  document.getElementById('bias-summary-cards').innerHTML = `
+    <div class="metric-card ${latest.biasType === 'bull' ? 'green-accent' : 'red-accent'}">
+      <div class="metric-label">Latest Candle (${tfLabel})</div>
+      <div class="metric-value ${latest.biasType === 'bull' ? 'green' : 'red'}" style="font-size:16px">${latest.biasType === 'bull' ? '▲' : '▼'} ${latest.biasLabel}</div>
+      <div class="metric-sub">${latest.dt?.toLocaleDateString('en-ZA', {day:'numeric',month:'short',year:'numeric'}) || '—'}</div>
+    </div>
+    <div class="metric-card accent-accent">
+      <div class="metric-label">Bullish Bias %</div>
+      <div class="metric-value accent">${bullPct}%</div>
+      <div class="metric-sub">${bulls.length} bull · ${bears.length} bear · ${neutral.length} doji</div>
+    </div>
+    <div class="metric-card blue-accent">
+      <div class="metric-label">Current Streak</div>
+      <div class="metric-value ${streakType === 'bull' ? 'green' : 'red'}">${streak} ${streakType === 'bull' ? '▲' : '▼'}</div>
+      <div class="metric-sub">Consecutive ${streakType} candles</div>
+    </div>
+    <div class="metric-card ${latest.biasType === 'bull' ? 'green-accent' : 'red-accent'}">
+      <div class="metric-label">Suggested Bias</div>
+      <div class="metric-value ${latest.biasType === 'bull' ? 'green' : 'red'}" style="font-size:18px">${latest.biasType === 'bull' ? 'LONG ↑' : 'SHORT ↓'}</div>
+      <div class="metric-sub">${tfLabel} · based on latest close</div>
+    </div>
+  `;
+
+  document.getElementById('bias-latest-label').textContent =
+    `${tfLabel} · ${latest.biasLabel} · ${latest.dt?.toLocaleDateString('en-ZA') || ''} · O:${latest.open} H:${latest.high} L:${latest.low} C:${latest.close}`;
+
+  document.getElementById('bias-candle-count').textContent = `${candles.length} candles analysed · ${tfLabel} chart`;
+
+  renderBiasCandleTable(candles);
+}
+
+function renderBiasCandleTable(candles) {
+  const el = document.getElementById('bias-candle-table');
+  const reversed = [...candles].reverse(); // newest first
+  el.innerHTML = `
+    <table class="trades-table" style="width:100%">
+      <thead>
+        <tr>
+          <th>Date / Time</th>
+          <th>Open</th>
+          <th>High</th>
+          <th>Low</th>
+          <th>Close</th>
+          <th>Range</th>
+          <th>Body %</th>
+          <th>Bias</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${reversed.slice(0, 100).map(c => `
+          <tr>
+            <td style="color:var(--muted)">${c.dt?.toLocaleString('en-ZA', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) || '—'}</td>
+            <td style="font-family:var(--mono)">${c.open}</td>
+            <td style="font-family:var(--mono);color:var(--green)">${c.high}</td>
+            <td style="font-family:var(--mono);color:var(--red)">${c.low}</td>
+            <td style="font-family:var(--mono);font-weight:700;color:${c.biasType==='bull'?'var(--green)':c.biasType==='bear'?'var(--red)':'var(--muted)'}">${c.close}</td>
+            <td style="font-family:var(--mono);color:var(--muted)">${c.range}</td>
+            <td style="font-family:var(--mono)">${c.bodyPct}%</td>
+            <td>
+              <span class="badge ${c.biasType === 'bull' ? 'win' : c.biasType === 'bear' ? 'loss' : ''}" style="font-size:10px">
+                ${c.biasType === 'bull' ? '▲ Bullish' : c.biasType === 'bear' ? '▼ Bearish' : '— Neutral'}
+              </span>
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+    ${reversed.length > 100 ? `<div style="text-align:center;padding:12px;font-family:var(--mono);font-size:10px;color:var(--muted)">Showing 100 of ${reversed.length} candles</div>` : ''}
+  `;
+}
+
+function filterBiasCandles(filter, btn) {
+  const { candles } = biasData;
+  let filtered;
+  if (filter === 'bull') filtered = candles.filter(c => c.biasType === 'bull');
+  else if (filter === 'bear') filtered = candles.filter(c => c.biasType === 'bear');
+  else filtered = candles;
+  renderBiasCandleTable(filtered);
+}
+
+function applyBiasToForm() {
+  const { latestBias, tf } = biasData;
+  if (!latestBias) return;
+
+  // Navigate to new trade form
+  showPage('newtrade', null);
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.getAttribute('onclick')?.includes("'newtrade'")) n.classList.add('active');
+    else n.classList.remove('active');
+  });
+
+  // Apply bias after short delay to ensure form is rendered
+  setTimeout(() => {
+    const biasVal = latestBias.biasType === 'bull' ? 'Bullish OLHC' : 'Bearish OHLC';
+    // Map M/Y to closest form TF option
+    const formTF = { '5M':'15M','15M':'15M','1H':'1H','2H':'2H','4H':'4H','D':'D','W':'W','M':'W','Y':'W' }[tf] || tf;
+    formState.toggles.bias = biasVal;
+    formState.toggles.biasTF = formTF;
+
+    // Highlight the correct buttons
+    document.querySelectorAll('[onclick*="toggle(\'bias\'"]').forEach(b => {
+      b.classList.toggle('active', b.getAttribute('onclick').includes(biasVal));
+    });
+    document.querySelectorAll('[onclick*="toggle(\'biasTF\'"]').forEach(b => {
+      b.classList.toggle('active', b.getAttribute('onclick').includes(`'${tf}'`));
+    });
+
+    // Scroll to pre-trade section
+    document.querySelector('.form-section-title')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 150);
+}
+</script>
+</body>
+</html>
